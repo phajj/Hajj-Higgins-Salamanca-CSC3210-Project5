@@ -1,0 +1,5 @@
+# Local-only test level (see test-environment/index.html)
+test-environment/
+
+# npm dependencies
+node_modules/

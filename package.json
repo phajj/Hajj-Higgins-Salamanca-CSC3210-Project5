@@ -1,0 +1,12 @@
+{
+  "name": "csc3210-project5",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CSC 3210 Project 5 walking simulator",
+  "scripts": {
+    "start": "serve ."
+  },
+  "devDependencies": {
+    "serve": "^14.2.1"
+  }
+}
