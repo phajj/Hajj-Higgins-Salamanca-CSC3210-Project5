@@ -9,6 +9,7 @@ This file records the prompts we gave to AI coding assistents and/or other LLMs 
 - Fix the spotlight (flashlight) to properly aim forward (from the users perspective). Currently it follows the camera perfectly but angled above the user
   - Raised the flashlight's aim by about 20 degrees because the beam looked like it pointed too far below the camera.
 - Help me fix the (PointerLockControls) controls I added to properly hide the curser
+- Call updateBobbing function in each case of the if statements in updateMovements
 
 ## Jackson 
 
