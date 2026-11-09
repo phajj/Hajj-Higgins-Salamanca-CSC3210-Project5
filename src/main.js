@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { perspectiveCamera } from "./camera.js";
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
 const MOUSE_SENSITIVITY = 0.002;
 const CAMERA_MOVE_SPEED = 0.05;
@@ -25,11 +26,10 @@ const flashlight = new THREE.SpotLight(0xfff2d9, 40, 25, Math.PI / 7, 0.4, 2); /
 // Flashflight points same direction as camera (child of camera)
 camera.add(flashlight);
 camera.add(flashlight.target);
-// Target 1 unit ahead (-z), raised by tan(tilt) so the beam points FLASHLIGHT_TILT_UP above straight ahead
+// Target 1 unit ahead (-z), raised by tan(tilt) so the beam points FLASHLIGHT_TILT_UP above straight ahead (by Claude Code)
 flashlight.target.position.set(0, Math.tan(FLASHLIGHT_TILT_UP), -1);
 flashlight.visible = true; // Defaults on (f key toggles off)
 
-// The camera has to be in the scene graph for its child light to be rendered
 scene.add(camera);
 scene.add(ambientLight);
 
@@ -46,6 +46,19 @@ var wPresssed = false;
 var aPresssed = false;
 var sPresssed = false;
 var dPresssed = false;
+
+// Hides the cursor
+const controls = new PointerLockControls(camera, renderer.domElement);
+controls.pointerSpeed = MOUSE_SENSITIVITY / 0.002; 
+// Lock the pointer when clicked, and unlock when ESC is pressed (default behavior of PointerLockControls) (by Claude Code)
+renderer.domElement.addEventListener("click", () => controls.lock()); 
+
+// Small dot in center of screen to replace cursor
+const dotCursor = new THREE.CircleGeometry(0.005, 32);
+const dotMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const dotMesh = new THREE.Mesh(dotCursor, dotMaterial);
+dotMesh.position.set(0, 0, -1);
+camera.add(dotMesh);
 
 /**
  * Handles keyboard input for perspectiveCamera movement:
@@ -114,21 +127,6 @@ function updateMovement() {
     camera.position.addScaledVector(movement.normalize(), CAMERA_MOVE_SPEED);
 }
 
-/**
- * Rotates the perspective camera by how far the mouse moved since the last event.
- * @param {MouseEvent} event
- * (copied from project 2)
- */
-function onMouseMove(event) {
-  camera.rotation.y -= event.movementX * MOUSE_SENSITIVITY;
-  camera.rotation.x = THREE.MathUtils.clamp(
-    camera.rotation.x - event.movementY * MOUSE_SENSITIVITY,
-    -Math.PI / 2 + 0.01,
-    Math.PI / 2 - 0.01
-  );
-}
-
-document.addEventListener("mousemove", onMouseMove);
 keyboardInput();
 
 /**

@@ -8,6 +8,7 @@ This file records the prompts we gave to AI coding assistents and/or other LLMs 
   - Move @testEnvironment.js to its own directory with its own index.html file and gitignore  that directory
 - Fix the spotlight (flashlight) to properly aim forward (from the users perspective). Currently it follows the camera perfectly but angled above the user
   - Raised the flashlight's aim by about 20 degrees because the beam looked like it pointed too far below the camera.
+- Help me fix the (PointerLockControls) controls I added to properly hide the curser
 
 ## Jackson 
 
