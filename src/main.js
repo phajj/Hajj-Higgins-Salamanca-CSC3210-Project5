@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { perspectiveCamera } from "./camera.js";
-import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+import { Terrain } from "./terrain.js";
 
 const MOUSE_SENSITIVITY = 0.002;
 const CAMERA_MOVE_SPEED = 0.05;
@@ -49,9 +50,9 @@ var dPresssed = false;
 
 // Hides the cursor
 const controls = new PointerLockControls(camera, renderer.domElement);
-controls.pointerSpeed = MOUSE_SENSITIVITY / 0.002; 
+controls.pointerSpeed = MOUSE_SENSITIVITY / 0.002;
 // Lock the pointer when clicked, and unlock when ESC is pressed (default behavior of PointerLockControls) (by Claude Code)
-renderer.domElement.addEventListener("click", () => controls.lock()); 
+renderer.domElement.addEventListener("click", () => controls.lock());
 
 // Small dot in center of screen to replace cursor
 const dotCursor = new THREE.CircleGeometry(0.005, 32);
@@ -69,14 +70,10 @@ camera.add(dotMesh);
 function keyboardInput() {
   // Handle keydown events to start movement
   window.addEventListener("keydown", (event) => {
-    if (event.key.toLocaleLowerCase() === "w")
-      wPresssed = true;
-    if (event.key.toLocaleLowerCase() === "a")
-      aPresssed = true;
-    if (event.key.toLocaleLowerCase() === "s")
-      sPresssed = true;
-    if (event.key.toLocaleLowerCase() === "d")
-      dPresssed = true;
+    if (event.key.toLocaleLowerCase() === "w") wPresssed = true;
+    if (event.key.toLocaleLowerCase() === "a") aPresssed = true;
+    if (event.key.toLocaleLowerCase() === "s") sPresssed = true;
+    if (event.key.toLocaleLowerCase() === "d") dPresssed = true;
     // Toggle flashlight on/off
     if (event.key.toLocaleLowerCase() === "f")
       flashlight.visible = !flashlight.visible;
@@ -84,14 +81,10 @@ function keyboardInput() {
 
   // Handle keyup events to stop movement
   window.addEventListener("keyup", (event) => {
-    if (event.key.toLocaleLowerCase() === "w")
-      wPresssed = false;
-    if (event.key.toLocaleLowerCase() === "a")
-      aPresssed = false;
-    if (event.key.toLocaleLowerCase() === "s")
-      sPresssed = false;
-    if (event.key.toLocaleLowerCase() === "d")
-      dPresssed = false;
+    if (event.key.toLocaleLowerCase() === "w") wPresssed = false;
+    if (event.key.toLocaleLowerCase() === "a") aPresssed = false;
+    if (event.key.toLocaleLowerCase() === "s") sPresssed = false;
+    if (event.key.toLocaleLowerCase() === "d") dPresssed = false;
   });
 }
 
@@ -114,19 +107,17 @@ function updateMovement() {
   right.crossVectors(forward, camera.up).normalize();
   movement.set(0, 0, 0);
 
-  if (wPresssed)
-    movement.add(forward);
-  if (aPresssed)
-    movement.sub(right);
-  if (sPresssed)
-    movement.sub(forward);
-  if (dPresssed)
-    movement.add(right);
+  if (wPresssed) movement.add(forward);
+  if (aPresssed) movement.sub(right);
+  if (sPresssed) movement.sub(forward);
+  if (dPresssed) movement.add(right);
   // Normalize combined input so diagonal movement has the same speed.
-  if (movement.lengthSq() > 0) { // (assisted by Claude Code)
+  if (movement.lengthSq() > 0) {
+    // (assisted by Claude Code)
     camera.position.addScaledVector(movement.normalize(), CAMERA_MOVE_SPEED);
     updateBobbing();
-  } else { // Reset to standing eye height
+  } else {
+    // Reset to standing eye height
     activeBobbingTime = 0;
     camera.position.y = baseCameraY;
   }
@@ -152,6 +143,10 @@ function updateBobbing() {
 }
 
 keyboardInput();
+
+//Add terrain
+const terrain = new Terrain({ size: 400, segments: 200, amplitude: 12 });
+scene.add(terrain.mesh);
 
 /**
  * Render loop, called once per frame
