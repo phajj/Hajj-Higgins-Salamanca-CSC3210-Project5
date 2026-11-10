@@ -9,7 +9,9 @@ import * as THREE from "three";
 
 const ORBIT_RADIUS = 150; // Distance from the terrain's center (kept inside the camera's far plane of 200)
 const SUN_SIZE = 8;
-const SUN_COLOR = 0xfff2a0;
+const SUN_COLOR = 0xfff2a0; 
+const HORIZON_COLOR = new THREE.Color(0xff4a1a); // Red-orange, when the sun is at the horizon
+const OVERHEAD_COLOR = new THREE.Color(SUN_COLOR);
 const LIGHT_INTENSITY = 2;
 const ROTATION_SPEED = THREE.MathUtils.degToRad(15) / 10; // 15 degrees every 10 seconds, in radians per second
 const SHADOW_EXTENT = 210; // Half the width the shadows cover, a bit more than half the 400-wide terrain
@@ -44,6 +46,7 @@ export class Sun {
     shadowCamera.near = 1;
     shadowCamera.far = ORBIT_RADIUS + SHADOW_EXTENT;
     this.light.shadow.bias = -0.0005; // Stops surfaces from shadowing themselves in stripes
+    this._updateColor();
   }
 
   /**
@@ -52,5 +55,15 @@ export class Sun {
    */
   update(delta) {
     this.pivot.rotation.x += ROTATION_SPEED * delta;
+    this._updateColor();
+  }
+
+  /**
+   * Blends the sun and its light from red-orange at the horizon to warm white overhead.
+   */
+  _updateColor() {
+    const height = THREE.MathUtils.clamp(Math.sin(this.pivot.rotation.x), 0, 1);
+    this.light.color.lerpColors(HORIZON_COLOR, OVERHEAD_COLOR, height);
+    this.mesh.material.color.copy(this.light.color);
   }
 }
