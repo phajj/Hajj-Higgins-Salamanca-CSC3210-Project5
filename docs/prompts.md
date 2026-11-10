@@ -14,6 +14,7 @@ This file records the prompts we gave to AI coding assistents and/or other LLMs 
 ## Jackson
 
 - I have implemented the fractalPlan.js stochasticPine.js, stochasticTree.js, and ternaryTree.js files with their grammar rules. Help me create an lsystem.js parser to generate the plants and trees from the rules. Use https://en.wikipedia.org/wiki/L-system as a reference
+- Help me correct the math behind tree and plant placement so they do not overlap
 
 ## Laura
 

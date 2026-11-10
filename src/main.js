@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { perspectiveCamera } from "./camera.js";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { Terrain } from "./terrain.js";
+import { populateForest } from "./forest.js";
+import { TreeHighlighter } from "./treeHighlighter.js";
 
 const MOUSE_SENSITIVITY = 0.002;
 const CAMERA_MOVE_SPEED = 0.05;
@@ -153,11 +155,17 @@ keyboardInput();
 const terrain = new Terrain({ size: 400, segments: 200, amplitude: 12 });
 scene.add(terrain.mesh);
 
+// Add trees and plants, and highlight the tree under the dot
+const forest = populateForest(terrain, camera.position);
+scene.add(forest.trees, forest.plants);
+const treeHighlighter = new TreeHighlighter(camera, terrain, [forest.trees, forest.plants]);
+
 /**
  * Render loop, called once per frame
  */
 function animate() {
   updateMovement();
+  treeHighlighter.update();
   renderer.render(scene, camera);
 }
 
