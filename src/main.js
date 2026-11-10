@@ -117,15 +117,20 @@ function updateMovement() {
     camera.position.addScaledVector(movement.normalize(), CAMERA_MOVE_SPEED);
     updateBobbing();
   } else {
-    // Reset to standing eye height
+    // Reset to standing eye height above the ground
     activeBobbingTime = 0;
-    camera.position.y = baseCameraY;
+    camera.position.y = groundHeight() + baseCameraY;
   }
 }
 
 // Bobbing state
 let activeBobbingTime = 0;
 const baseCameraY = camera.position.y;
+
+// Terrain height directly under the camera
+function groundHeight() {
+  return terrain.heightAt(camera.position.x, camera.position.z);
+}
 
 /**
  * Adds bobbing to first person view while moving.
@@ -134,12 +139,12 @@ const baseCameraY = camera.position.y;
  */
 function updateBobbing() {
   const bobbingSpeed = 0.1;
-  const bobbingAmount = 0.05;
+  const bobbingAmount = 0.075;
   activeBobbingTime += bobbingSpeed;
   // Calculate the bobbing offset using a sine wave
   const bobbingOffset = Math.sin(activeBobbingTime) * bobbingAmount;
   // Set the height so the offset doesn't build up frame to frame (assisted by Claude Code)
-  camera.position.y = baseCameraY + bobbingOffset;
+  camera.position.y = groundHeight() + baseCameraY + bobbingOffset;
 }
 
 keyboardInput();
