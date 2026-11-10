@@ -54,6 +54,12 @@ export function populateForest(terrain, spawn) {
     object.rotation.y = Math.random() * Math.PI * 2;
     object.scale.multiplyScalar(0.85 + Math.random() * 0.3);
     object.userData = { isTree, type };
+    // Trees cast shadows onto the ground and onto each other
+    if (isTree)
+      for (const mesh of object.children) {
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+      }
     parent.add(object);
   }
 }

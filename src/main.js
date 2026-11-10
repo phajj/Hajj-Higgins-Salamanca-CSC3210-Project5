@@ -4,6 +4,7 @@ import { PointerLockControls } from "three/addons/controls/PointerLockControls.j
 import { Terrain } from "./terrain.js";
 import { populateForest } from "./forest.js";
 import { TreeHighlighter } from "./treeHighlighter.js";
+import { Sun } from "./sun.js";
 
 const MOUSE_SENSITIVITY = 0.002;
 const CAMERA_MOVE_SPEED = 0.05;
@@ -18,6 +19,8 @@ scene.background = new THREE.Color(0x000000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Softens shadow edges
 document.body.appendChild(renderer.domElement);
 
 // Camera (perspective)
@@ -164,16 +167,27 @@ keyboardInput();
 
 //Add terrain
 const terrain = new Terrain({ size: 400, segments: 200, amplitude: 12 });
+terrain.mesh.receiveShadow = true; // So tree shadows show up on the ground
 scene.add(terrain.mesh);
 
 // Add trees and plants, and highlight the tree under the dot
 const forest = populateForest(terrain, camera.position);
 scene.add(forest.trees, forest.plants);
 const treeHighlighter = new TreeHighlighter(camera, terrain, [forest.trees, forest.plants]);
+
+// Add the sun, which circles the terrain
+const sun = new Sun();
+scene.add(sun.pivot, sun.light.target);
+
+// Measures the time between frames so the sun moves at the same speed at any frame rate
+const clock = new THREE.Clock();
+
 /**
  * Render loop, called once per frame
  */
 function animate() {
+  const delta = clock.getDelta();
+  sun.update(delta);
   updateMovement();
   treeHighlighter.update();
   renderer.render(scene, camera);
