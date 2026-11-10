@@ -2,10 +2,11 @@ import * as THREE from "three";
 
 /**
  * Terrain Generation
+ * Assisted by Claude Code
  * @author Laura Salamanca
  */
 
-// Perlin noise
+// Perlin noise creation
 class Perlin {
   // Creates a new permutation table for each Perlin noise instance
   constructor() {
@@ -37,9 +38,9 @@ class Perlin {
         return -x - y;
     }
   }
-  // Calculates Perlin noise at the given coordinates
+
+  // Calculates Perlin noise at the given (x,y) coordinates
   noise(x, y) {
-    // returns roughly [-1, 1]
     const X = Math.floor(x) & 255,
       Y = Math.floor(y) & 255;
     x -= Math.floor(x);
@@ -113,12 +114,20 @@ export class Terrain {
       }
     }
 
+    // Per-vertex color buffer, filled in by _updateColors()
+    this.geometry.setAttribute(
+      "color",
+      new THREE.BufferAttribute(new Float32Array(n * n * 3), 3),
+    );
+
     this._syncGeometry();
 
     this.material = new THREE.MeshStandardMaterial({
-      color: 0x4a7c3a,
+      vertexColors: true, // grass/dirt coloring from _updateColors()
+      map: this._makeGrainTexture(), // fine speckle that multiplies with the vertex colors
       roughness: 1,
     });
+
     this.mesh = new THREE.Mesh(this.geometry, this.material);
     this.mesh.castShadow = false; // spec: terrain does NOT cast shadows
     this.mesh.receiveShadow = true; // but trees' shadows land on it
@@ -132,6 +141,75 @@ export class Terrain {
     this.geometry.computeVertexNormals();
     this.geometry.computeBoundingSphere();
     this.geometry.computeBoundingBox();
+    this._updateColors();
+  }
+
+  // Add texture to terrain
+  _updateColors() {
+    const n = this.segments + 1;
+    const normals = this.geometry.attributes.normal;
+    const colors = this.geometry.attributes.color;
+
+    const grassLight = new THREE.Color(0x5f9141);
+    const grassDark = new THREE.Color(0x3b6b2a);
+    const dirtLight = new THREE.Color(0x8a6a45);
+    const dirtDark = new THREE.Color(0x5e4630);
+    const grass = new THREE.Color(),
+      dirt = new THREE.Color(),
+      out = new THREE.Color();
+    const smooth = (a, b, x) => {
+      const t = Math.min(Math.max((x - a) / (b - a), 0), 1);
+      return t * t * (3 - 2 * t);
+    };
+
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
+        const k = i * n + j;
+        const x = j * this.step - this.half;
+        const z = i * this.step - this.half;
+
+        // Large soft patches of lighter/darker grass, plus a separate patchy dirt mask
+        const grassNoise =
+          this.perlin.fbm(x * 0.03 + 100, z * 0.03 + 100, 3) * 0.5 + 0.5;
+        const dirtNoise =
+          this.perlin.fbm(x * 0.02 - 50, z * 0.02 - 50, 3) * 0.5 + 0.5;
+
+        const slope = 1 - normals.getY(k); // 0 = flat, larger = steeper
+
+        // Dirt shows up on steep spots and in noise patches
+        let dirtAmount =
+          smooth(0.05, 0.25, slope) + smooth(0.62, 0.78, dirtNoise) * 0.8;
+        dirtAmount = Math.min(dirtAmount, 1);
+
+        grass.lerpColors(grassDark, grassLight, grassNoise);
+        dirt.lerpColors(dirtDark, dirtLight, grassNoise);
+        out.lerpColors(grass, dirt, dirtAmount);
+        colors.setXYZ(k, out.r, out.g, out.b);
+      }
+    }
+    colors.needsUpdate = true;
+  }
+
+  // Small tiling noise texture drawn on a canvas
+  _makeGrainTexture() {
+    const s = 128;
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = s;
+    const ctx = canvas.getContext("2d");
+    const img = ctx.createImageData(s, s);
+    for (let p = 0; p < s * s; p++) {
+      const v = 170 + Math.random() * 85;
+      img.data[p * 4] = img.data[p * 4 + 1] = img.data[p * 4 + 2] = v;
+      img.data[p * 4 + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(this.size / 4, this.size / 4); // one tile every ~4 world units
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    return tex;
   }
 
   // Ground height at any world (x, z) via bilinear interpolation
