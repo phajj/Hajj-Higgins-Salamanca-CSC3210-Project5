@@ -8,6 +8,7 @@ import { TerrainHighlighter } from "./terrain-highlighter.js";
 
 const MOUSE_SENSITIVITY = 0.002;
 const CAMERA_MOVE_SPEED = 0.05;
+const TREE_COLLISION_RADIUS = 0.7; // How close the camera can get to a tree's center (trunk + body width)
 const FLASHLIGHT_TILT_UP = THREE.MathUtils.degToRad(30); // How far above the view direction the beam aims
 
 // Scene (exported so test pages can add geometry to it)
@@ -117,13 +118,23 @@ function updateMovement() {
   // Normalize combined input so diagonal movement has the same speed.
   if (movement.lengthSq() > 0) {
     // (assisted by Claude Code)
-    camera.position.addScaledVector(movement.normalize(), CAMERA_MOVE_SPEED);
+    movement.normalize().multiplyScalar(CAMERA_MOVE_SPEED);
+    // Only take the step if it doesn't walk into a tree
+    if (!hitsTree(camera.position.x + movement.x, camera.position.z + movement.z))
+      camera.position.add(movement);
     updateBobbing();
   } else {
     // Reset to standing eye height above the ground
     activeBobbingTime = 0;
     camera.position.y = groundHeight() + baseCameraY;
   }
+}
+
+// True if (x, z) is within TREE_COLLISION_RADIUS of any tree
+function hitsTree(x, z) {
+  return forest.trees.children.some(
+    (tree) => Math.hypot(x - tree.position.x, z - tree.position.z) < TREE_COLLISION_RADIUS
+  );
 }
 
 // Bobbing state
