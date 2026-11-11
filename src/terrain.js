@@ -128,6 +128,52 @@ export class Terrain {
       roughness: 1,
     });
 
+    // Highlight under the crosshair
+    this.highlight = {
+      position: { value: new THREE.Vector3() },
+      radius: { value: 1.0 },
+      intensity: { value: 0 },
+      color: { value: new THREE.Color(0xffe9a0) },
+    };
+
+    this.material.onBeforeCompile = (shader) => {
+      shader.uniforms.uHighlightPos = this.highlight.position;
+      shader.uniforms.uHighlightRadius = this.highlight.radius;
+      shader.uniforms.uHighlightIntensity = this.highlight.intensity;
+      shader.uniforms.uHighlightColor = this.highlight.color;
+
+      // Vertex shader: pass each fragment's world-space position along
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          "#include <common>",
+          "#include <common>\nvarying vec3 vTerrainWorldPos;",
+        )
+        .replace(
+          "#include <begin_vertex>",
+          "#include <begin_vertex>\nvTerrainWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;",
+        );
+
+      // Fragment shader: glow that fades smoothly with distance from the hit point
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          "#include <common>",
+          `#include <common>
+          varying vec3 vTerrainWorldPos;
+          uniform vec3  uHighlightPos;
+          uniform float uHighlightRadius;
+          uniform float uHighlightIntensity;
+          uniform vec3  uHighlightColor;`,
+        )
+        .replace(
+          "#include <emissivemap_fragment>",
+          `#include <emissivemap_fragment>
+          float hlDist = distance(vTerrainWorldPos, uHighlightPos);
+          float hl = (1.0 - smoothstep(uHighlightRadius * 0.55, uHighlightRadius, hlDist))
+                     * uHighlightIntensity;
+          totalEmissiveRadiance += uHighlightColor * hl * 0.45;`,
+        );
+    };
+
     this.mesh = new THREE.Mesh(this.geometry, this.material);
     this.mesh.castShadow = false; // spec: terrain does NOT cast shadows
     this.mesh.receiveShadow = true; // but trees' shadows land on it
@@ -210,6 +256,17 @@ export class Terrain {
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 8;
     return tex;
+  }
+
+  // Show the highlight centered on a point
+  setHighlight(point) {
+    this.highlight.position.value.copy(point);
+    this.highlight.intensity.value = 1;
+  }
+
+  // Hide the highlight
+  clearHighlight() {
+    this.highlight.intensity.value = 0;
   }
 
   // Ground height at any world (x, z) via bilinear interpolation

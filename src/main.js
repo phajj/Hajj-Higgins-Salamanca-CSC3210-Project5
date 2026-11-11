@@ -4,6 +4,7 @@ import { PointerLockControls } from "three/addons/controls/PointerLockControls.j
 import { Terrain } from "./terrain.js";
 import { populateForest } from "./forest.js";
 import { TreeHighlighter } from "./treeHighlighter.js";
+import { TerrainHighlighter } from "./terrain-highlighter.js";
 
 const MOUSE_SENSITIVITY = 0.002;
 const CAMERA_MOVE_SPEED = 0.05;
@@ -162,7 +163,7 @@ function updateBobbing() {
 
 keyboardInput();
 
-//Add terrain
+//Add terrain and terrain highlight
 const terrain = new Terrain({ size: 400, segments: 200, amplitude: 12 });
 scene.add(terrain.mesh);
 
@@ -170,12 +171,15 @@ scene.add(terrain.mesh);
 const forest = populateForest(terrain, camera.position);
 scene.add(forest.trees, forest.plants);
 const treeHighlighter = new TreeHighlighter(camera, terrain, [forest.trees, forest.plants]);
+const terrainHighlighter = new TerrainHighlighter(camera, terrain);
+
 /**
  * Render loop, called once per frame
  */
 function animate() {
   updateMovement();
   treeHighlighter.update();
+  terrainHighlighter.update();
   renderer.render(scene, camera);
 }
 
