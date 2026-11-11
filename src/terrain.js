@@ -114,6 +114,9 @@ export class Terrain {
       }
     }
 
+    // Remember the original ground for digging
+    this.baseHeights = this.heights.slice();
+
     // Per-vertex color buffer, filled in by _updateColors()
     this.geometry.setAttribute(
       "color",
@@ -191,7 +194,7 @@ export class Terrain {
   }
 
   // Add texture to terrain
-  _updateColors() {
+  _updateColors(i0 = 0, i1 = this.segments, j0 = 0, j1 = this.segments) {
     const n = this.segments + 1;
     const normals = this.geometry.attributes.normal;
     const colors = this.geometry.attributes.color;
@@ -208,24 +211,27 @@ export class Terrain {
       return t * t * (3 - 2 * t);
     };
 
-    for (let i = 0; i < n; i++) {
-      for (let j = 0; j < n; j++) {
+    for (let i = i0; i <= i1; i++) {
+      for (let j = j0; j <= j1; j++) {
         const k = i * n + j;
         const x = j * this.step - this.half;
         const z = i * this.step - this.half;
 
-        // Large soft patches of lighter/darker grass, plus a separate patchy dirt mask
+        // Large soft patches of lighter/darker grass
         const grassNoise =
           this.perlin.fbm(x * 0.03 + 100, z * 0.03 + 100, 3) * 0.5 + 0.5;
         const dirtNoise =
           this.perlin.fbm(x * 0.02 - 50, z * 0.02 - 50, 3) * 0.5 + 0.5;
 
-        const slope = 1 - normals.getY(k); // 0 = flat, larger = steeper
+        const slope = 1 - normals.getY(k); 
+
+        const dug = Math.max(this.baseHeights[k] - this.heights[k], 0);
 
         // Dirt shows up on steep spots and in noise patches
         let dirtAmount =
-          smooth(0.05, 0.25, slope) + smooth(0.62, 0.78, dirtNoise) * 0.8;
-        dirtAmount = Math.min(dirtAmount, 1);
+          smooth(0.05, 0.25, slope) +
+          smooth(0.62, 0.78, dirtNoise) * 0.8 +
+          smooth(0.0, 0.4, dug); // adds brown color to make the dug area look like dirt
 
         grass.lerpColors(grassDark, grassLight, grassNoise);
         dirt.lerpColors(dirtDark, dirtLight, grassNoise);
@@ -286,6 +292,50 @@ export class Terrain {
       h11 = this.heights[(i + 1) * n + j + 1];
     return (
       (h00 * (1 - fx) + h10 * fx) * (1 - fz) + (h01 * (1 - fx) + h11 * fx) * fz
+    );
+  }
+
+  // Lower the ground around point (x, z)
+  dig(x, z, radius = 2.5, amount = 0.3, maxDepth = 4) {
+    const n = this.segments + 1;
+    const r = Math.ceil(radius / this.step);
+    const cj = Math.round((x + this.half) / this.step);
+    const ci = Math.round((z + this.half) / this.step);
+    const i0 = Math.max(ci - r, 0),
+      i1 = Math.min(ci + r, n - 1);
+    const j0 = Math.max(cj - r, 0),
+      j1 = Math.min(cj + r, n - 1);
+    const pos = this.geometry.attributes.position;
+
+    for (let i = i0; i <= i1; i++) {
+      for (let j = j0; j <= j1; j++) {
+        const dx = j * this.step - this.half - x;
+        const dz = i * this.step - this.half - z;
+        const d = Math.sqrt(dx * dx + dz * dz);
+        if (d >= radius) continue;
+
+        const t = 1 - d / radius;
+        const falloff = t * t * (3 - 2 * t);
+        const k = i * n + j;
+
+        // don't let the hole go deeper than maxDepth below the original ground
+        this.heights[k] = Math.max(
+          this.heights[k] - amount * falloff,
+          this.baseHeights[k] - maxDepth,
+        );
+        pos.setY(k, this.heights[k]);
+      }
+    }
+
+    pos.needsUpdate = true;
+    this.geometry.computeVertexNormals();
+
+    // recolor only the changed area
+    this._updateColors(
+      Math.max(i0 - 1, 0),
+      Math.min(i1 + 1, n - 1),
+      Math.max(j0 - 1, 0),
+      Math.min(j1 + 1, n - 1),
     );
   }
 }

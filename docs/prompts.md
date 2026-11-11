@@ -20,3 +20,4 @@ This file records the prompts we gave to AI coding assistents and/or other LLMs 
 
 - Using this terrain base help me add perlin noise to add varying heights to the terrain that is unique to each reload of the page.
 - How to add a grainy grass-like texture to the terrain
+- Help me update the updateColors method to turn the terrain a brown color when the hole is being dug

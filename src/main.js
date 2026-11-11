@@ -188,6 +188,19 @@ scene.add(moon.light.target);
 const clock = new THREE.Clock();
 const terrainHighlighter = new TerrainHighlighter(camera, terrain);
 
+//Digging terrain interaction
+const DIG_SPEED = 1.5;
+let digging = false;
+
+document.addEventListener("mousedown", (e) => {
+  if (e.button === 0) digging = true;
+});
+document.addEventListener("mouseup", (e) => {
+  if (e.button === 0) digging = false;
+});
+
+const clock = new THREE.Clock();
+
 /**
  * Render loop, called once per frame
  */
@@ -198,6 +211,10 @@ function animate() {
   updateMovement();
   treeHighlighter.update();
   terrainHighlighter.update();
+  if (digging && terrainHighlighter.onGround) {
+    const p = terrainHighlighter.hitPoint;
+    terrain.dig(p.x, p.z, terrain.highlight.radius.value, DIG_SPEED * delta);
+  }
   renderer.render(scene, camera);
 }
 
