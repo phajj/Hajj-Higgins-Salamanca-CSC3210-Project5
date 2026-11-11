@@ -5,7 +5,8 @@ import { Terrain } from "./terrain.js";
 import { TerrainHighlighter } from "./terrain-highlighter.js";
 
 const MOUSE_SENSITIVITY = 0.002;
-const CAMERA_MOVE_SPEED = 0.05;
+const CAMERA_MOVE_SPEED = 5; // Units per second 
+const MAX_DELTA_TIME = 0.1;
 const FLASHLIGHT_TILT_UP = THREE.MathUtils.degToRad(30); // How far above the view direction the beam aims
 
 // Scene (exported so test pages can add geometry to it)
@@ -98,8 +99,9 @@ const movement = new THREE.Vector3();
  * Moves the perspective camera with WASD.
  * Called every frame from animate() so multiple keys can be held at once.
  * (copied from project 2)
+ * @param {number} deltaTime Seconds since the last frame
  */
-function updateMovement() {
+function updateMovement(deltaTime) {
   // Use the camera's view and horizontal axes so WASD follows its orientation
   camera.getWorldDirection(forward);
   // Flatten camera on the ground terrain
@@ -115,8 +117,11 @@ function updateMovement() {
   // Normalize combined input so diagonal movement has the same speed.
   if (movement.lengthSq() > 0) {
     // (assisted by Claude Code)
-    camera.position.addScaledVector(movement.normalize(), CAMERA_MOVE_SPEED);
-    updateBobbing();
+    camera.position.addScaledVector(
+      movement.normalize(),
+      CAMERA_MOVE_SPEED * deltaTime,
+    );
+    updateBobbing(deltaTime);
   } else {
     // Reset to standing eye height above the ground
     activeBobbingTime = 0;
@@ -137,11 +142,12 @@ function groundHeight() {
  * Adds bobbing to first person view while moving.
  * Called once per frame from updateMovement() while any movement key is held.
  * (not to be confused with Bob and Alice)
+ * @param {number} deltaTime Seconds since the last frame
  */
-function updateBobbing() {
-  const bobbingSpeed = 0.1;
+function updateBobbing(deltaTime) {
+  const bobbingSpeed = 6; 
   const bobbingAmount = 0.075;
-  activeBobbingTime += bobbingSpeed;
+  activeBobbingTime += bobbingSpeed * deltaTime;
   // Calculate the bobbing offset using a sine wave
   const bobbingOffset = Math.sin(activeBobbingTime) * bobbingAmount;
   // Set the height so the offset doesn't build up frame to frame (assisted by Claude Code)
@@ -156,11 +162,18 @@ scene.add(terrain.mesh);
 
 const terrainHighlighter = new TerrainHighlighter(camera, terrain);
 
+// Timestamp of the previous frame (ms), used to compute delta time
+let lastFrameTime = performance.now();
+
 /**
  * Render loop, called once per frame
+ * @param {number} time Current timestamp in ms (passed by setAnimationLoop)
  */
-function animate() {
-  updateMovement();
+function animate(time) {
+  // Seconds since the last frame, clamped so a long pause doesn't teleport the camera
+  const deltaTime = Math.min((time - lastFrameTime) / 1000, MAX_DELTA_TIME);
+  lastFrameTime = time;
+  updateMovement(deltaTime);
   terrainHighlighter.update();
   renderer.render(scene, camera);
 }
