@@ -6,6 +6,7 @@ import { populateForest } from "./forest.js";
 import { TreeHighlighter } from "./treeHighlighter.js";
 import { Sun } from "./sun.js";
 import { Moon } from "./moon.js";
+import { TerrainHighlighter } from "./terrain-highlighter.js";
 
 const MOUSE_SENSITIVITY = 0.002;
 const CAMERA_MOVE_SPEED = 0.05;
@@ -166,7 +167,7 @@ function updateBobbing() {
 
 keyboardInput();
 
-//Add terrain
+//Add terrain and terrain highlight
 const terrain = new Terrain({ size: 400, segments: 200, amplitude: 12 });
 terrain.mesh.receiveShadow = true; // So tree shadows show up on the ground
 scene.add(terrain.mesh);
@@ -185,6 +186,7 @@ scene.add(moon.light.target);
 
 // Measures the time between frames so the sun moves at the same speed at any frame rate
 const clock = new THREE.Clock();
+const terrainHighlighter = new TerrainHighlighter(camera, terrain);
 
 /**
  * Render loop, called once per frame
@@ -195,6 +197,7 @@ function animate() {
   moon.update();
   updateMovement();
   treeHighlighter.update();
+  terrainHighlighter.update();
   renderer.render(scene, camera);
 }
 
