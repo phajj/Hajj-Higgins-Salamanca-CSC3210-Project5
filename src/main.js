@@ -9,7 +9,8 @@ import { Moon } from "./moon.js";
 import { TerrainHighlighter } from "./terrain-highlighter.js";
 
 const MOUSE_SENSITIVITY = 0.002;
-const CAMERA_MOVE_SPEED = 0.05;
+const CAMERA_MOVE_SPEED = 5; // Units per second 
+const MAX_DELTA_TIME = 0.1;
 const TREE_COLLISION_RADIUS = 0.7; // How close the camera can get to a tree's center (trunk + body width)
 const FLASHLIGHT_TILT_UP = THREE.MathUtils.degToRad(30); // How far above the view direction the beam aims
 
@@ -105,8 +106,9 @@ const movement = new THREE.Vector3();
  * Moves the perspective camera with WASD.
  * Called every frame from animate() so multiple keys can be held at once.
  * (copied from project 2)
+ * @param {number} deltaTime Seconds since the last frame
  */
-function updateMovement() {
+function updateMovement(deltaTime) {
   // Use the camera's view and horizontal axes so WASD follows its orientation
   camera.getWorldDirection(forward);
   // Flatten camera on the ground terrain
@@ -122,11 +124,11 @@ function updateMovement() {
   // Normalize combined input so diagonal movement has the same speed.
   if (movement.lengthSq() > 0) {
     // (assisted by Claude Code)
-    movement.normalize().multiplyScalar(CAMERA_MOVE_SPEED);
+    movement.normalize().multiplyScalar(CAMERA_MOVE_SPEED * deltaTime);
     // Only take the step if it doesn't walk into a tree
     if (!hitsTree(camera.position.x + movement.x, camera.position.z + movement.z))
       camera.position.add(movement);
-    updateBobbing();
+    updateBobbing(deltaTime);
   } else {
     // Reset to standing eye height above the ground
     activeBobbingTime = 0;
@@ -154,11 +156,12 @@ function groundHeight() {
  * Adds bobbing to first person view while moving.
  * Called once per frame from updateMovement() while any movement key is held.
  * (not to be confused with Bob and Alice)
+ * @param {number} deltaTime Seconds since the last frame
  */
-function updateBobbing() {
-  const bobbingSpeed = 0.1;
+function updateBobbing(deltaTime) {
+  const bobbingSpeed = 6; 
   const bobbingAmount = 0.075;
-  activeBobbingTime += bobbingSpeed;
+  activeBobbingTime += bobbingSpeed * deltaTime;
   // Calculate the bobbing offset using a sine wave
   const bobbingOffset = Math.sin(activeBobbingTime) * bobbingAmount;
   // Set the height so the offset doesn't build up frame to frame (assisted by Claude Code)
@@ -184,10 +187,6 @@ scene.add(sun.pivot, sun.light.target);
 const moon = new Moon(sun);
 scene.add(moon.light.target);
 
-// Measures the time between frames so the sun moves at the same speed at any frame rate
-const clock = new THREE.Clock();
-const terrainHighlighter = new TerrainHighlighter(camera, terrain);
-
 //Digging terrain interaction
 const DIG_SPEED = 1.5;
 let digging = false;
@@ -199,16 +198,20 @@ document.addEventListener("mouseup", (e) => {
   if (e.button === 0) digging = false;
 });
 
+const terrainHighlighter = new TerrainHighlighter(camera, terrain);
+
+// Measures the time between frames so movement and the sun run at the same speed at any frame rate
 const clock = new THREE.Clock();
 
 /**
  * Render loop, called once per frame
  */
 function animate() {
-  const delta = clock.getDelta();
+  // Seconds since the last frame, clamped so a long pause doesn't teleport the camera
+  const delta = Math.min(clock.getDelta(), MAX_DELTA_TIME);
   sun.update(delta);
   moon.update();
-  updateMovement();
+  updateMovement(delta);
   treeHighlighter.update();
   terrainHighlighter.update();
   if (digging && terrainHighlighter.onGround) {

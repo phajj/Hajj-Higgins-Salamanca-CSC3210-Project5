@@ -10,6 +10,8 @@ This file records the prompts we gave to AI coding assistents and/or other LLMs 
   - Raised the flashlight's aim by about 20 degrees because the beam looked like it pointed too far below the camera.
 - Help me fix the (PointerLockControls) controls I added to properly hide the curser
 - Call updateBobbing function in each case of the if statements in updateMovements
+- Fix the camera movement to use delta time
+- Handle the merge conflict
 
 ## Jackson
 
