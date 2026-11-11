@@ -5,6 +5,7 @@ import { Terrain } from "./terrain.js";
 import { populateForest } from "./forest.js";
 import { TreeHighlighter } from "./treeHighlighter.js";
 import { Sun } from "./sun.js";
+import { Moon } from "./moon.js";
 
 const MOUSE_SENSITIVITY = 0.002;
 const CAMERA_MOVE_SPEED = 0.05;
@@ -179,6 +180,9 @@ const treeHighlighter = new TreeHighlighter(camera, terrain, [forest.trees, fore
 const sun = new Sun();
 scene.add(sun.pivot, sun.light.target);
 
+const moon = new Moon(sun);
+scene.add(moon.light.target);
+
 // Measures the time between frames so the sun moves at the same speed at any frame rate
 const clock = new THREE.Clock();
 
@@ -188,6 +192,7 @@ const clock = new THREE.Clock();
 function animate() {
   const delta = clock.getDelta();
   sun.update(delta);
+  moon.update();
   updateMovement();
   treeHighlighter.update();
   renderer.render(scene, camera);

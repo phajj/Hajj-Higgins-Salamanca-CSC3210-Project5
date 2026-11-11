@@ -7,7 +7,7 @@ import * as THREE from "three";
  * @author Jackson Higgins
  */
 
-const ORBIT_RADIUS = 150; // Distance from the terrain's center (kept inside the camera's far plane of 200)
+export const ORBIT_RADIUS = 150; // Distance from the terrain's center (kept inside the camera's far plane of 200)
 const SUN_SIZE = 8;
 const SUN_COLOR = 0xfff2a0; 
 const HORIZON_COLOR = new THREE.Color(0xff4a1a); // Red-orange, when the sun is at the horizon
@@ -37,15 +37,7 @@ export class Sun {
     this.light.position.copy(this.mesh.position);
     this.pivot.add(this.light);
 
-    // The shadow camera is a box looking from the sun toward the center, sized to cover the whole terrain
-    this.light.castShadow = true;
-    this.light.shadow.mapSize.set(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
-    const shadowCamera = this.light.shadow.camera;
-    shadowCamera.left = shadowCamera.bottom = -SHADOW_EXTENT;
-    shadowCamera.right = shadowCamera.top = SHADOW_EXTENT;
-    shadowCamera.near = 1;
-    shadowCamera.far = ORBIT_RADIUS + SHADOW_EXTENT;
-    this.light.shadow.bias = -0.0005; // Stops surfaces from shadowing themselves in stripes
+    castTerrainShadows(this.light);
     this._updateColor();
   }
 
@@ -65,5 +57,23 @@ export class Sun {
     const height = THREE.MathUtils.clamp(Math.sin(this.pivot.rotation.x), 0, 1);
     this.light.color.lerpColors(HORIZON_COLOR, OVERHEAD_COLOR, height);
     this.mesh.material.color.copy(this.light.color);
+    // Below the horizon the light would shine up through the ground, so turn it off
+    this.light.intensity = height > 0 ? LIGHT_INTENSITY : 0;
   }
+}
+
+/**
+ * Makes a light that circles on the pivot cast shadows over the whole terrain.
+ * Its shadow camera is a box looking from the light toward the terrain's center.
+ * @param {THREE.DirectionalLight} light
+ */
+export function castTerrainShadows(light) {
+  light.castShadow = true;
+  light.shadow.mapSize.set(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
+  const shadowCamera = light.shadow.camera;
+  shadowCamera.left = shadowCamera.bottom = -SHADOW_EXTENT;
+  shadowCamera.right = shadowCamera.top = SHADOW_EXTENT;
+  shadowCamera.near = 1;
+  shadowCamera.far = ORBIT_RADIUS + SHADOW_EXTENT;
+  light.shadow.bias = -0.0005; // Stops surfaces from shadowing themselves in stripes
 }
