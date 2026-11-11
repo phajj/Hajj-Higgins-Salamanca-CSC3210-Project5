@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { perspectiveCamera } from "./camera.js";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { Terrain } from "./terrain.js";
+import { TerrainHighlighter } from "./terrain-highlighter.js";
 
 const MOUSE_SENSITIVITY = 0.002;
 const CAMERA_MOVE_SPEED = 0.05;
@@ -149,15 +150,18 @@ function updateBobbing() {
 
 keyboardInput();
 
-//Add terrain
+//Add terrain and terrain highlight
 const terrain = new Terrain({ size: 400, segments: 200, amplitude: 12 });
 scene.add(terrain.mesh);
+
+const terrainHighlighter = new TerrainHighlighter(camera, terrain);
 
 /**
  * Render loop, called once per frame
  */
 function animate() {
   updateMovement();
+  terrainHighlighter.update();
   renderer.render(scene, camera);
 }
 
