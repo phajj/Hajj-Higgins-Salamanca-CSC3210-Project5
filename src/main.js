@@ -2,10 +2,15 @@ import * as THREE from "three";
 import { perspectiveCamera } from "./camera.js";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { Terrain } from "./terrain.js";
+import { populateForest } from "./forest.js";
+import { TreeHighlighter } from "./treeHighlighter.js";
+import { Sun } from "./sun.js";
+import { Moon } from "./moon.js";
 import { TerrainHighlighter } from "./terrain-highlighter.js";
 
 const MOUSE_SENSITIVITY = 0.002;
 const CAMERA_MOVE_SPEED = 0.05;
+const TREE_COLLISION_RADIUS = 0.7; // How close the camera can get to a tree's center (trunk + body width)
 const FLASHLIGHT_TILT_UP = THREE.MathUtils.degToRad(30); // How far above the view direction the beam aims
 
 // Scene (exported so test pages can add geometry to it)
@@ -16,6 +21,8 @@ scene.background = new THREE.Color(0x000000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Softens shadow edges
 document.body.appendChild(renderer.domElement);
 
 // Camera (perspective)
@@ -115,13 +122,23 @@ function updateMovement() {
   // Normalize combined input so diagonal movement has the same speed.
   if (movement.lengthSq() > 0) {
     // (assisted by Claude Code)
-    camera.position.addScaledVector(movement.normalize(), CAMERA_MOVE_SPEED);
+    movement.normalize().multiplyScalar(CAMERA_MOVE_SPEED);
+    // Only take the step if it doesn't walk into a tree
+    if (!hitsTree(camera.position.x + movement.x, camera.position.z + movement.z))
+      camera.position.add(movement);
     updateBobbing();
   } else {
     // Reset to standing eye height above the ground
     activeBobbingTime = 0;
     camera.position.y = groundHeight() + baseCameraY;
   }
+}
+
+// True if (x, z) is within TREE_COLLISION_RADIUS of any tree
+function hitsTree(x, z) {
+  return forest.trees.children.some(
+    (tree) => Math.hypot(x - tree.position.x, z - tree.position.z) < TREE_COLLISION_RADIUS
+  );
 }
 
 // Bobbing state
@@ -152,8 +169,23 @@ keyboardInput();
 
 //Add terrain and terrain highlight
 const terrain = new Terrain({ size: 400, segments: 200, amplitude: 12 });
+terrain.mesh.receiveShadow = true; // So tree shadows show up on the ground
 scene.add(terrain.mesh);
 
+// Add trees and plants, and highlight the tree under the dot
+const forest = populateForest(terrain, camera.position);
+scene.add(forest.trees, forest.plants);
+const treeHighlighter = new TreeHighlighter(camera, terrain, [forest.trees, forest.plants]);
+
+// Add the sun, which circles the terrain
+const sun = new Sun();
+scene.add(sun.pivot, sun.light.target);
+
+const moon = new Moon(sun);
+scene.add(moon.light.target);
+
+// Measures the time between frames so the sun moves at the same speed at any frame rate
+const clock = new THREE.Clock();
 const terrainHighlighter = new TerrainHighlighter(camera, terrain);
 
 //Digging terrain interaction
@@ -174,7 +206,10 @@ const clock = new THREE.Clock();
  */
 function animate() {
   const delta = clock.getDelta();
+  sun.update(delta);
+  moon.update();
   updateMovement();
+  treeHighlighter.update();
   terrainHighlighter.update();
   if (digging && terrainHighlighter.onGround) {
     const p = terrainHighlighter.hitPoint;
