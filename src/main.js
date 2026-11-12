@@ -196,6 +196,20 @@ scene.add(sun.pivot, sun.light.target);
 const moon = new Moon(sun);
 scene.add(moon.light.target);
 
+// Sky color follows the sun: blue while it's up, black while the moon is up (by Claude Code)
+const DAY_SKY = new THREE.Color(0x5fa8d3); 
+const NIGHT_SKY = new THREE.Color(0x000000);
+
+/**
+ * Blends the background from black to blue as the sun rises, and back as it sets.
+ * The fade happens while the sun is just around the horizon so sunrise and sunset are smooth.
+ */
+function updateSky() {
+  const sunHeight = Math.sin(sun.pivot.rotation.x); // 1 overhead, 0 at the horizon, below 0 at night
+  const daylight = THREE.MathUtils.smoothstep(sunHeight, -0.05, 0.2);
+  scene.background.lerpColors(NIGHT_SKY, DAY_SKY, daylight);
+}
+
 // Invisible player body that only casts a shadow (positioned each frame in updateMovement)
 const playerBody = createPlayerBody();
 scene.add(playerBody);
@@ -224,6 +238,7 @@ function animate() {
   const delta = Math.min(clock.getDelta(), MAX_DELTA_TIME);
   sun.update(delta);
   moon.update();
+  updateSky();
   updateMovement(delta);
   treeHighlighter.update();
   terrainHighlighter.update();
