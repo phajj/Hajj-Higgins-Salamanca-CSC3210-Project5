@@ -7,6 +7,7 @@ import { TreeHighlighter } from "./treeHighlighter.js";
 import { Sun } from "./sun.js";
 import { Moon } from "./moon.js";
 import { TerrainHighlighter } from "./terrain-highlighter.js";
+import { createPlayerBody, moveArms, moveLegs, resetLimbs } from "./playerBody.js";
 
 const MOUSE_SENSITIVITY = 0.002;
 const CAMERA_MOVE_SPEED = 5; // Units per second 
@@ -129,11 +130,19 @@ function updateMovement(deltaTime) {
     if (!hitsTree(camera.position.x + movement.x, camera.position.z + movement.z))
       camera.position.add(movement);
     updateBobbing(deltaTime);
+    // Swing the shadow body's limbs while walking
+    moveArms();
+    moveLegs();
   } else {
     // Reset to standing eye height above the ground
     activeBobbingTime = 0;
     camera.position.y = groundHeight() + baseCameraY;
+    // Ease the shadow body's limbs back to standing
+    resetLimbs(deltaTime);
   }
+  // Keep the shadow body standing on the ground under the camera, facing where the camera looks (assisted by Claude Code)
+  playerBody.position.set(camera.position.x, groundHeight(), camera.position.z);
+  playerBody.rotation.y = camera.rotation.y;
 }
 
 // True if (x, z) is within TREE_COLLISION_RADIUS of any tree
@@ -186,6 +195,10 @@ scene.add(sun.pivot, sun.light.target);
 
 const moon = new Moon(sun);
 scene.add(moon.light.target);
+
+// Invisible player body that only casts a shadow (positioned each frame in updateMovement)
+const playerBody = createPlayerBody();
+scene.add(playerBody);
 
 //Digging terrain interaction
 const DIG_SPEED = 1.5;

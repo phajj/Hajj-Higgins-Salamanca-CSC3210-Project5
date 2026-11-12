@@ -12,6 +12,9 @@ This file records the prompts we gave to AI coding assistents and/or other LLMs 
 - Call updateBobbing function in each case of the if statements in updateMovements
 - Fix the camera movement to use delta time
 - Handle the merge conflict
+- I just made the @src/playerBody.js with export createBody, export moveArms and export moveLegs functions. In @src/main.js import the body and call both move functions in the updateMovement function. Ensure it casts a shadow
+  - Doubled the body's geometry sizes and positions so the shadow is about twice as big, and halved how fast the arms and legs swing.
+  - Made the arms and legs smoothly ease back to their original angle when the player stops moving.
 
 ## Jackson
 
