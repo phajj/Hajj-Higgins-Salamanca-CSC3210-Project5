@@ -7,6 +7,7 @@ import { TreeHighlighter } from "./treeHighlighter.js";
 import { Sun } from "./sun.js";
 import { Moon } from "./moon.js";
 import { TerrainHighlighter } from "./terrain-highlighter.js";
+import { createPlayerBody, moveArms, moveLegs, resetLimbs } from "./playerBody.js";
 
 const MOUSE_SENSITIVITY = 0.002;
 const CAMERA_MOVE_SPEED = 5; // Units per second 
@@ -129,11 +130,19 @@ function updateMovement(deltaTime) {
     if (!hitsTree(camera.position.x + movement.x, camera.position.z + movement.z))
       camera.position.add(movement);
     updateBobbing(deltaTime);
+    // Swing the shadow body's limbs while walking
+    moveArms();
+    moveLegs();
   } else {
     // Reset to standing eye height above the ground
     activeBobbingTime = 0;
     camera.position.y = groundHeight() + baseCameraY;
+    // Ease the shadow body's limbs back to standing
+    resetLimbs(deltaTime);
   }
+  // Keep the shadow body standing on the ground under the camera, facing where the camera looks (assisted by Claude Code)
+  playerBody.position.set(camera.position.x, groundHeight(), camera.position.z);
+  playerBody.rotation.y = camera.rotation.y;
 }
 
 // True if (x, z) is within TREE_COLLISION_RADIUS of any tree
@@ -187,6 +196,24 @@ scene.add(sun.pivot, sun.light.target);
 const moon = new Moon(sun);
 scene.add(moon.light.target);
 
+// Sky color follows the sun: blue while it's up, black while the moon is up (by Claude Code)
+const DAY_SKY = new THREE.Color(0x5fa8d3); 
+const NIGHT_SKY = new THREE.Color(0x000000);
+
+/**
+ * Blends the background from black to blue as the sun rises, and back as it sets.
+ * The fade happens while the sun is just around the horizon so sunrise and sunset are smooth.
+ */
+function updateSky() {
+  const sunHeight = Math.sin(sun.pivot.rotation.x); // 1 overhead, 0 at the horizon, below 0 at night
+  const daylight = THREE.MathUtils.smoothstep(sunHeight, -0.05, 0.2);
+  scene.background.lerpColors(NIGHT_SKY, DAY_SKY, daylight);
+}
+
+// Invisible player body that only casts a shadow (positioned each frame in updateMovement)
+const playerBody = createPlayerBody();
+scene.add(playerBody);
+
 //Digging terrain interaction
 const DIG_SPEED = 1.5;
 let digging = false;
@@ -211,6 +238,7 @@ function animate() {
   const delta = Math.min(clock.getDelta(), MAX_DELTA_TIME);
   sun.update(delta);
   moon.update();
+  updateSky();
   updateMovement(delta);
   treeHighlighter.update();
   terrainHighlighter.update();

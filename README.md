@@ -2,16 +2,23 @@
 Computer Graphics Project 5
 
 ## Group Members:
-- Peter Hajj (PM, TODO add other contributions)
-- Jackson Higgins (TODO add other contributions)
-- Laura Salamanca (TODO add other contributions)
+- Peter Hajj (PM, User Interaction)
+- Jackson Higgins (Sun/Moon Designer, Tree Designer)
+- Laura Salamanca (Procedurally Generated Terrain Designer)
 
 ## Overview
-TODO
+A first-person walking simulator through a procedurally generated forest, where the terrain and L-system trees and plants are different on every load. A sun and moon circle the world for a day/night cycle with real-time shadows, and you can dig into the terrain as you explore.
 
 ## How to Play
 
-TODO
+| Control | Action |
+| --- | --- |
+| Click | Lock the mouse to look around |
+| Mouse | Look around |
+| W A S D | Walk forward, left, backward, right |
+| F | Toggle the flashlight on/off |
+| Hold left click | Dig into the highlighted ground |
+| Esc | Unlock the mouse |
 
 ## Running the Project
 
